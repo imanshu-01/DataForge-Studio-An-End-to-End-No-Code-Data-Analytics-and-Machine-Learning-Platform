@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Data Hub · Model Building</title>
+    <!-- modern favicon (blue/teal circle) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234a72ff'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%2336d6b0'/%3E%3C/svg%3E">
+    <!-- modern font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        /* === reset & base === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* theme variables – day & night */
+        :root {
+            --transition-theme: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.night {
+            --depth-bg: #030614;
+            --depth-card: rgba(8, 15, 26, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #cfdfff;
+            --accent-1: #4a72ff;
+            --accent-2: #36d6b0;
+            --accent-glow: rgba(74, 114, 255, 0.7);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --shadow-heavy: 0 35px 60px -15px #000000;
+            --particle-color: #4a72ff;
+            --sun-moon: #ffdd88;
+            --toggle-bg: #0f1a2b;
+            --card-inner-border: #ffffff0a;
+            --table-header-bg: #1f2b41;
+            --table-border: #2d3855;
+        }
+
+        body.day {
+            --depth-bg: #eef5ff;
+            --depth-card: rgba(255, 255, 255, 0.75);
+            --text-primary: #0a2540;
+            --text-secondary: #1f4172;
+            --accent-1: #2b4cbe;
+            --accent-2: #1f9a7a;
+            --accent-glow: rgba(43, 76, 190, 0.6);
+            --border-light: rgba(0, 30, 60, 0.2);
+            --shadow-heavy: 0 25px 40px -10px rgba(0, 50, 100, 0.5);
+            --particle-color: #2b4cbe;
+            --sun-moon: #ffb347;
+            --toggle-bg: #c3d9ff;
+            --card-inner-border: rgba(0, 30, 60, 0.1);
+            --table-header-bg: #c6d6ff;
+            --table-border: #a0b5dd;
+        }
+
+        body {
+            background: var(--depth-bg);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 1.5rem;
+            transition: background-color var(--transition-theme), color var(--transition-theme);
+            position: relative;
+        }
+
+        /* animated background */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, var(--accent-1) 0%, transparent 35%),
+                radial-gradient(circle at 80% 70%, var(--accent-2) 0%, transparent 40%),
+                radial-gradient(circle at 30% 80%, var(--accent-1) 0%, transparent 45%),
+                repeating-linear-gradient(45deg, var(--accent-2) 0px, var(--accent-2) 2px, transparent 2px, transparent 8px);
+            opacity: 0.15;
+            filter: blur(50px) brightness(1.3);
+            z-index: 0;
+            animation: breathe 15s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+
+        /* floating particles */
+        .particle-field {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--particle-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px currentColor;
+            animation: float-particle 25s infinite linear;
+            transition: background var(--transition-theme);
+            opacity: 0.5;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(0) translateX(0); opacity: 0.2; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) translateX(20vw); opacity: 0; }
+        }
+
+        @keyframes breathe {
+            0% { opacity: 0.2; filter: blur(40px); }
+            100% { opacity: 0.6; filter: blur(70px); }
+        }
+
+        /* ===== navigation – glass morph ===== */
+        #naviagation {
+            margin: 0 0 2rem 0;
+            background: var(--depth-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.6rem 1rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            z-index: 10;
+        }
+
+        #naviagation button {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 0.6rem 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+        }
+
+        #naviagation button:hover {
+            background: color-mix(in srgb, var(--accent-1) 15%, transparent);
+            color: var(--text-primary);
+            border-color: var(--accent-1);
+            box-shadow: 0 0 15px var(--accent-1);
+        }
+
+        /* current page indicator – Data Visualization */
+        #naviagation button[onclick*="/model"] {
+            background: linear-gradient(145deg, var(--accent-1), color-mix(in srgb, var(--accent-2) 70%, black)) !important;
+            color: white !important;
+            box-shadow: 0 8px 16px -6px #0e162b, 0 2px 0 0 var(--accent-2) inset, 0 0 20px var(--accent-1);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #naviagation h4 {
+            flex: 1;
+            text-align: center;
+            background: color-mix(in srgb, var(--accent-2) 10%, transparent);
+            border-radius: 60px;
+            padding: 0.6rem 1.5rem;
+            border: 1px solid var(--accent-2);
+            color: var(--text-primary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            font-size: 1rem;
+            box-shadow: 0 0 15px var(--accent-2);
+        }
+
+        #home {
+            background: color-mix(in srgb, #f44d4d 10%, transparent) !important;
+            border: 1px solid #f44d4d40 !important;
+            color: var(--text-secondary) !important;
+        }
+        #home:hover {
+            background: #f44d4d30 !important;
+            border-color: #f44d4d !important;
+            color: white !important;
+            box-shadow: 0 0 20px #f44d4d;
+        }
+
+        /* theme toggle button inside navigation */
+        #themeToggle {
+            background: var(--toggle-bg);
+            border: 1px solid var(--accent-1) !important;
+            color: var(--sun-moon) !important;
+            font-size: 1.4rem;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        #themeToggle:hover {
+            transform: scale(1.1) rotate(10deg);
+            border-color: var(--accent-2) !important;
+            box-shadow: 0 0 20px var(--accent-2);
+        }
+
+        /* ===== intro text block ===== */
+        #text {
+            margin: 1.5rem 0 2rem 0;
+            padding: 2rem 2.5rem;
+            border-radius: 36px;
+            background: var(--depth-card);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            z-index: 10;
+        }
+        #text h1 {
+            color: var(--text-primary);
+            font-size: 2.2rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--accent-2);
+            padding-bottom: 0.5rem;
+        }
+        #text p {
+            color: var(--text-secondary);
+            font-size: 1.05rem;
+            line-height: 1.7;
+        }
+
+        /* ===== card containers & titles ===== */
+        .card-container {
+            display: flex;
+            gap: 1.8rem;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        h2 {
+            width: 100%;
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-1);
+            padding-bottom: 0.4rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ===== cards ===== */
+        .card {
+            flex: 1 1 280px;
+            background: var(--depth-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 1.8rem 1.8rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy), 0 0 0 1px var(--card-inner-border) inset;
+            transition: transform 0.3s cubic-bezier(0.2,0.9,0.3,1), box-shadow 0.4s, border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 280px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 34px;
+            padding: 2px;
+            background: linear-gradient(125deg, var(--accent-1), var(--accent-2), var(--accent-1), var(--accent-2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            animation: rotateBorder 6s linear infinite;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 30px 50px -20px #000, 0 0 0 1px var(--accent-1) inset, 0 0 30px var(--accent-2);
+            border-color: transparent;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        .card label {
+            color: var(--text-secondary);
+            font-weight: 500;
+            margin-top: 0.8rem;
+            margin-bottom: 0.2rem;
+            font-size: 0.9rem;
+        }
+        .card button {
+            background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 20%, black), color-mix(in srgb, var(--accent-2) 20%, black));
+            border: none;
+            border-radius: 50px;
+            padding: 0.8rem 1.2rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 6px 12px #00000060, 0 2px 0 0 var(--accent-2) inset;
+            margin-top: 0.8rem;
+            border: 1px solid #ffffff10;
+            width: auto;
+            align-self: center;
+            min-width: 160px;
+        }
+        .card button:hover {
+            background: linear-gradient(145deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 10px 18px -5px #000, 0 0 20px var(--accent-1);
+            transform: scale(1.02);
+        }
+
+        /* special for export button (outside card) */
+        #export {
+            background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 20%, black), color-mix(in srgb, var(--accent-2) 20%, black));
+            border: none;
+            border-radius: 50px;
+            padding: 0.9rem 2.5rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 18px #00000080, 0 2px 0 0 var(--accent-2) inset;
+            border: 1px solid #ffffff10;
+            margin: 1rem auto;
+            display: block;
+            transition: 0.2s;
+        }
+        #export:hover {
+            background: linear-gradient(145deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 12px 24px #000000, 0 0 20px var(--accent-1);
+            transform: scale(1.02);
+        }
+
+        /* selects, inputs, textareas */
+        select, input[type="number"], input[type="text"], textarea {
+            background: color-mix(in srgb, var(--depth-bg) 70%, black);
+            border: 1px solid var(--table-border);
+            border-radius: 40px;
+            padding: 0.7rem 1.2rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+            width: 100%;
+            margin: 0.4rem 0 0.8rem 0;
+            font-family: 'Inter', sans-serif;
+        }
+        select option {
+            background: color-mix(in srgb, var(--depth-bg) 90%, black);
+            color: var(--text-primary);
+        }
+        select:focus, input:focus, textarea:focus {
+            border-color: var(--accent-2);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 30%, transparent);
+        }
+
+        /* multi-select boxes (numerical_cols, categorical_cols) */
+        select[multiple] {
+            height: auto;
+            min-height: 120px;
+            border-radius: 24px;
+            padding: 0.5rem;
+            background: color-mix(in srgb, var(--depth-bg) 80%, black);
+        }
+        select[multiple] option {
+            padding: 0.5rem 1rem;
+            border-radius: 30px;
+            margin: 2px 0;
+        }
+        select[multiple] option:checked {
+            background: var(--accent-1) linear-gradient(0deg, var(--accent-1) 0%, var(--accent-1) 100%);
+            color: white;
+        }
+
+        /* textareas readonly (selected columns) */
+        textarea[readonly] {
+            background: color-mix(in srgb, var(--depth-bg) 80%, black);
+            border: 1px dashed var(--accent-1);
+            resize: none;
+            min-height: 70px;
+            border-radius: 24px;
+            padding: 0.8rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+
+        /* x_cols, y_cols display */
+        #x_cols div, #y_cols div {
+            background: color-mix(in srgb, var(--depth-bg) 80%, black);
+            border-radius: 40px;
+            padding: 0.5rem 1rem;
+            margin: 0.3rem 0;
+            border: 1px solid var(--table-border);
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* train-test info */
+        #train-test-info p {
+            background: color-mix(in srgb, var(--depth-bg) 80%, black);
+            border-radius: 40px;
+            padding: 0.7rem 1.2rem;
+            border-left: 4px solid var(--accent-2);
+            color: var(--text-secondary);
+        }
+
+        /* ===== evaluation result cards (dynamically injected) ===== */
+        #evaluation_result {
+            display: flex;
+            gap: 1.8rem;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+            position: relative;
+            z-index: 10;
+        }
+        #evaluation_result .card {
+            flex: 1 1 300px;
+            min-height: auto;
+            overflow-x: auto;
+        }
+        /* tables inside evaluation */
+        .eval-grid table, #bottom-left table, .card table {
+            width: 100%;
+            border-collapse: collapse;
+            background: color-mix(in srgb, var(--depth-bg) 80%, black);
+            border-radius: 20px;
+            overflow: hidden;
+            border: 1px solid var(--table-border);
+        }
+        .card th {
+            background: var(--table-header-bg);
+            color: var(--text-primary);
+            padding: 0.6rem;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-2);
+        }
+        .card td {
+            padding: 0.5rem;
+            border: 1px solid var(--table-border);
+            color: var(--text-secondary);
+        }
+        /* plot card image */
+        .card img {
+            border-radius: 24px;
+            border: 2px solid var(--accent-1);
+            max-width: 100%;
+        }
+
+        /* hr */
+        hr {
+            border: none;
+            border-bottom: 1px solid var(--table-border);
+            margin: 1rem 0;
+        }
+
+        /* items class for train-test inputs */
+        .items {
+            margin-bottom: 0.5rem;
+        }
+
+        /* small screens */
+        @media (max-width: 800px) {
+            #naviagation { border-radius: 30px; padding: 0.75rem 1rem; }
+            #naviagation h4 { flex: auto; width: 100%; order: 1; }
+            #home { order: 2; }
+            #themeToggle { order: 3; }
+            .card-container { flex-direction: column; }
+        }
+
+        /* override inline background on model button */
+        #naviagation button[onclick*="/model"] {
+            background: transparent !important;
+            color: var(--text-secondary) !important;
+        }
+        #naviagation button[onclick*="/model"]:hover {
+            background: color-mix(in srgb, var(--accent-1) 15%, transparent) !important;
+            color: var(--text-primary) !important;
+        }
+
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="night">
+    <!-- floating particles -->
+    <div class="particle-field" id="particleField"></div>
+
+    <!-- navigation with integrated theme toggle -->
+    <div id="naviagation">
+        <button onclick="window.location.href = '/basic_info'">Basic Data Info</button>
+        <button onclick="window.location.href = '/visualization'">Data Visualization</button>
+        <button onclick="window.location.href = '/processing'">Data Processing</button>
+        <button onclick="window.location.href = '/model'" style="background-color: #960dbc; color: white">Model Building</button>
+        <h4>Model Building</h4>
+        <button id="home" onclick="window.location.href = '/login'">Home</button>
+        <!-- theme toggle button inside navigation -->
+        <button id="themeToggle" title="switch day/night">🌙</button>
+    </div>
+
+    <div id="text">
+        <h1>Model Building Section</h1>
+        <p>
+            This section allows users to build machine learning models using the
+            cleaned and processed dataset. The goal is to prepare the data, split it
+            correctly, and make it ready for training and evaluation.
+        </p>
+        <br />
+        <p>
+            In this section you will:
+            <br />• Select the target variable (dependent variable). <br />•
+            Separate features (independent variables) and labels. <br />• Perform
+            train-test split with custom parameters. <br />• Prepare the dataset for
+            model training.
+        </p>
+    </div>
+
+    <!-- first card container -->
+    <div class="card-container">
+        <h2>Data Split</h2>
+
+        <div class="card">
+            <p>
+                Choose the target variable (y). The remaining columns will
+                automatically be treated as feature variables (X).
+            </p>
+            <label for="y">Select target variable (y)</label>
+            <select name="y" id="y">
+                <option>--select column--</option>
+            </select>
+            <button id="splitDataBtn">Split Data</button>
+        </div>
+
+        <div class="card">
+            <p>
+                This section displays the separated feature columns (X) and target
+                column (y) after the split operation.
+            </p>
+            <label>X-Columns</label>
+            <div id="x_cols"></div>
+            <label>y-Columns</label>
+            <div id="y_cols"></div>
+        </div>
+    </div>
+
+    <!-- second card container -->
+    <div class="card-container">
+        <h2>Train-Test Split</h2>
+
+        <div class="card">
+            <p>
+                Train-test split is used to divide the dataset into two parts: a
+                training set and a testing set. The training set is used to train the
+                machine learning model, while the testing set is used to evaluate how
+                well the model performs on unseen data.
+            </p>
+            <p>
+                This helps prevent overfitting and provides a realistic estimate of
+                model accuracy on new data.
+            </p>
+            <p id="train-test-info"></p>
+        </div>
+
+        <div class="card">
+            <p>
+                Configure how the dataset is split into training and testing sets
+                using the following parameters:
+            </p>
+            <ul
+                style="
+                    margin-left: 10px;
+                    text-align: left;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    color: var(--text-secondary);
+                "
+            >
+                <li>
+                    <b>Test size:</b> Proportion of the dataset used for testing (e.g.,
+                    0.2 = 20%).
+                </li>
+                <li>
+                    <b>Random state:</b> Controls randomness for reproducible results.
+                </li>
+                <li>
+                    <b>Shuffle:</b> Determines whether data is shuffled before
+                    splitting.
+                </li>
+            </ul>
+            <p>
+                A common practice is to use 70–80% of the data for training and the
+                remaining 20–30% for testing.
+            </p>
+
+            <div class="items">
+                <label>Test size</label>
+                <input type="number" id="testSize" placeholder="e.g. 0.2" />
+            </div>
+
+            <div class="items">
+                <label>Random state</label>
+                <input type="number" id="randomState" placeholder="e.g. 42" />
+            </div>
+
+            <div class="items">
+                <label>Shuffle</label>
+                <select id="shuffle">
+                    <option value="True">True</option>
+                    <option value="False">False</option>
+                </select>
+            </div>
+
+            <button id="trainTestBtn">Train-Test Split</button>
+        </div>
+    </div>
+
+    <!-- third card container -->
+    <div class="card-container" id="model_creation">
+        <h2>Model Selection</h2>
+        <!-- column card -->
+        <div
+            class="card"
+            id="column"
+            style="min-width: 60%; max-height: fit-content"
+        >
+            <p>Select Columns</p>
+            <div>
+                <label style="border: none">Numerical Columns:</label>
+                <select id="numerical_cols" multiple>
+                    <option value="">--select column--</option>
+                </select>
+                <textarea
+                    id="Numtextarea"
+                    placeholder="Selected numerical columns..."
+                    readonly
+                ></textarea>
+                <hr />
+            </div>
+
+            <div>
+                <label style="border: none">Categorical Columns:</label>
+                <select id="categorical_cols" multiple>
+                    <option value="">--select column--</option>
+                </select>
+                <textarea
+                    id="Cattextarea"
+                    placeholder="Selected categorical columns..."
+                    readonly
+                ></textarea>
+                <hr />
+            </div>
+        </div>
+        <div style="min-width: 30%; max-height: fit-content">
+            <div class="card" id="model_select">
+                <p>Scaling , Encoding and Model selection</p>
+                <label for="scaler">Select Scaler:</label>
+                <select name="scaler" id="scaler">
+                    <option value="">--Select Scaler--</option>
+                    <option value="standardscaler">Standard Scaler</option>
+                    <option value="MinMaxscaler">Min Max Scaler</option>
+                </select>
+
+                <label for="encoder">Select Encoder:</label>
+                <select name="encoder" id="encoder">
+                    <option value="">--Select Encoder--</option>
+                    <option value="Label">Label Encoder</option>
+                    <option value="OnehotEncoder">One hot Encoder</option>
+                </select>
+
+                <label for="model">Select Model</label>
+                <select name="model" id="model">
+                    <option value="">--Select Model--</option>
+                    <option value="linear">Linear Regression</option>
+                    <option value="logistic">Logistic Regression</option>
+                    <option value="knnc">K-Nearest Neighbour classifier</option>
+                    <option value="knnr">K-Nearest Neighbour regressor</option>
+                    <option value="naive">Naive baise</option>
+                    <option value="svc">Support Vector classifier</option>
+                    <option value="svr">Support Vector regressor</option>
+                    <option value="decisionc">Decision Tree classifier</option>
+                    <option value="decisionr">Decision Tree regressor</option>
+                    <option value="random_forestc">Random Forest classifier</option>
+                    <option value="random_forestr">Random Forest regressor</option>
+                </select>
+            </div>
+
+            <div class="card" id="pipeline" style="margin-top: 10px">
+                <p>Pipeline Creation</p>
+                <button id="create_pipeline">Make Pipeline</button>
+                <p>Model Training</p>
+                <button id="create_model">Train Model</button>
+                <p>Model Testing</p>
+                <button id="model_evaluation">Model Evaluation</button>
+            </div>
+        </div>
+    </div>
+
+    <h2>Model Evaluation</h2>
+    <div class="card-container" id="evaluation_result"></div>
+    <h2>Model Exporting</h2>
+    <button id="export">Export Model</button>
+
+    <!-- script section (identical, plus day/night toggle logic) -->
+    <script>
+        const ySelect = document.getElementById("y");
+        const xColsDiv = document.getElementById("x_cols");
+        const yColsDiv = document.getElementById("y_cols");
+        const splitDataBtn = document.getElementById("splitDataBtn");
+        const trainTestBtn = document.getElementById("trainTestBtn");
+        const splitResultDiv = document.getElementById("train-test-info");
+        const numSelect = document.getElementById("numerical_cols");
+        const catSelect = document.getElementById("categorical_cols");
+        const numText = document.getElementById("Numtextarea");
+        const catText = document.getElementById("Cattextarea");
+
+        // Load columns
+        async function loadColumns() {
+            try {
+                const response = await fetch("/get_columns");
+                if (!response.ok) throw new Error("Server error");
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                ySelect.innerHTML = "<option>--select column--</option>";
+                data.forEach((col) => {
+                    const option = document.createElement("option");
+                    option.value = col;
+                    option.textContent = col;
+                    ySelect.appendChild(option);
+                });
+            } catch (error) {
+                alert("Error loading columns. Upload dataset first.");
+                console.error(error);
+            }
+        }
+
+        window.onload = loadColumns;
+
+        let numericalCols = [];
+        let categoricalCols = [];
+
+        async function loadModelColumns() {
+            const res = await fetch("/get_X_train_columns");
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            numericalCols = data.numerical;
+            categoricalCols = data.categorical;
+
+            numSelect.innerHTML = "";
+            catSelect.innerHTML = "";
+
+            numericalCols.forEach((col) => {
+                const opt = document.createElement("option");
+                opt.value = col;
+                opt.textContent = col;
+                numSelect.appendChild(opt);
+            });
+
+            categoricalCols.forEach((col) => {
+                const opt = document.createElement("option");
+                opt.value = col;
+                opt.textContent = col;
+                catSelect.appendChild(opt);
+            });
+        }
+
+        function updateTextarea(selectElem, textareaElem) {
+            const selected = Array.from(selectElem.selectedOptions).map(
+                (o) => o.value,
+            );
+
+            textareaElem.value = selected.join(", ");
+        }
+
+        numSelect.addEventListener("change", () => {
+            updateTextarea(numSelect, numText);
+        });
+
+        catSelect.addEventListener("change", () => {
+            updateTextarea(catSelect, catText);
+        });
+
+        // Split X and y
+        splitDataBtn.addEventListener("click", async () => {
+            try {
+                const selectedY = ySelect.value;
+                if (selectedY === "--select column--") {
+                    alert("Please select target column");
+                    return;
+                }
+
+                const response = await fetch("/split_xy", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ target: selectedY }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    alert(result.error || "Failed to split X and y");
+                    return;
+                }
+
+                xColsDiv.innerHTML = "";
+                yColsDiv.innerHTML = "";
+
+                result.x_columns.forEach((col) => {
+                    const div = document.createElement("div");
+                    div.textContent = col;
+                    xColsDiv.appendChild(div);
+                });
+
+                const ydiv = document.createElement("div");
+                ydiv.textContent = result.y_column;
+                yColsDiv.appendChild(ydiv);
+            } catch (error) {
+                console.error(error);
+                alert("Error splitting X and y");
+            }
+        });
+
+        // Train-Test Split UI update
+        trainTestBtn.addEventListener("click", async () => {
+            try {
+                const testSize = document.getElementById("testSize").value;
+                const randomState = document.getElementById("randomState").value;
+                const shuffle = document.getElementById("shuffle").value;
+
+                if (!testSize || !randomState) {
+                    alert("Please enter Test Size and Random State.");
+                    return;
+                }
+
+                if (testSize <= 0 || testSize >= 1) {
+                    alert("Test size must be between 0 and 1.");
+                    return;
+                }
+
+                const response = await fetch("/train_test_split", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        test_size: testSize,
+                        random_state: randomState,
+                        shuffle: shuffle,
+                    }),
+                });
+
+                const result = await response.json();
+
+                if (!response.ok || result.error) {
+                    alert(result.error || "Train-test split failed");
+                    return;
+                }
+
+                splitResultDiv.innerHTML = `
+          <p><b>Status:</b> Train-Test Split Applied</p>
+          <p><b>Train shape:</b> ${result.train_shape}</p>
+          <p><b>Test shape:</b> ${result.test_shape}</p>
+          <p><b>Shuffle:</b> ${result.shuffle}</p>
+        `;
+                loadModelColumns();
+            } catch (error) {
+                console.error(error);
+                alert("Server error during train-test split.");
+            }
+        });
+
+        // create pipeline
+        const pipe = document.getElementById("create_pipeline");
+        const scaler = document.getElementById("scaler");
+        const encoder = document.getElementById("encoder");
+        const model = document.getElementById("model");
+
+        pipe.addEventListener("click", async () => {
+            const selectedNumerical = Array.from(numSelect.selectedOptions).map(
+                (o) => o.value,
+            );
+            const selectedCategorical = Array.from(catSelect.selectedOptions).map(
+                (o) => o.value,
+            );
+
+            if (
+                selectedNumerical.length === 0 &&
+                selectedCategorical.length === 0
+            ) {
+                alert("Please select at least one column");
+                return;
+            }
+            if (!scaler.value || !encoder.value || !model.value) {
+                alert("Please select scaler, encoder and model");
+                return;
+            }
+            const res = await fetch("/set_model_columns", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    numerical: selectedNumerical,
+                    categorical: selectedCategorical,
+                    scaling: scaler.value,
+                    encoding: encoder.value,
+                    model: model.value,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+            } else {
+                alert("Pipeline successfully created");
+            }
+        });
+
+        const create_model = document.getElementById("create_model");
+
+        create_model.addEventListener("click", async () => {
+            try {
+                const res = await fetch("/model_create", { method: "POST" });
+                const data = await res.json();
+                alert(data.message || "Model trained");
+            } catch (err) {
+                console.error(err);
+                alert("Error training model");
+            }
+        });
+
+        const evalBtn = document.getElementById("model_evaluation");
+        const resultDiv = document.getElementById("evaluation_result");
+
+        evalBtn.addEventListener("click", async () => {
+            const res = await fetch("/model_evaluation");
+            const data = await res.json();
+
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+
+            let leftCard = "";
+            let rightCard = "";
+            let bottomCard = "";
+
+            // REGRESSION
+            if (data.model_type === "regression") {
+                leftCard = `
+          <h3>Regression Metrics</h3>
+          <p><b>R2 Score:</b> ${data.r2_score.toFixed(4)}</p>
+          <p><b>MSE:</b> ${data.mse.toFixed(4)}</p>
+          <p><b>RMSE:</b> ${data.rmse.toFixed(4)}</p>
+          <p><b>MAE:</b> ${data.mae.toFixed(4)}</p>
+        `;
+
+                rightCard = `
+          <h3>Model Info</h3>
+          <p><b>Target:</b> ${data.target || "-"}</p>
+          <p><b>Samples:</b> ${data.samples || "-"}</p>
+        `;
+
+                bottomCard = `
+          <h3>Predictions</h3>
+          ${data.predictions_table || "<p>No predictions to show</p>"}
+        `;
+            }
+
+            // CLASSIFICATION
+            if (data.model_type === "classification") {
+                let matrixHTML =
+                    "<table style='border-collapse:collapse;width:100%;text-align:center'>";
+                data.confusion_matrix.forEach((row) => {
+                    matrixHTML += "<tr>";
+                    row.forEach((val) => {
+                        matrixHTML += `<td style="padding:8px;border:1px solid var(--table-border)">${val}</td>`;
+                    });
+                    matrixHTML += "</tr>";
+                });
+                matrixHTML += "</table>";
+
+                let reportHTML =
+                    "<table style='border-collapse:collapse;width:100%'>";
+                reportHTML += `
+          <tr>
+            <th>Class</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1-score</th>
+            <th>Support</th>
+          </tr>
+        `;
+
+                for (let key in data.classification_report) {
+                    if (
+                        key !== "accuracy" &&
+                        key !== "macro avg" &&
+                        key !== "weighted avg"
+                    ) {
+                        const row = data.classification_report[key];
+                        reportHTML += `
+              <tr>
+                <td>${key}</td>
+                <td>${row.precision.toFixed(3)}</td>
+                <td>${row.recall.toFixed(3)}</td>
+                <td>${row["f1-score"].toFixed(3)}</td>
+                <td>${row.support}</td>
+              </tr>
+            `;
+                    }
+                }
+
+                leftCard = `
+          <h3>Classification Metrics</h3>
+          <p><b>Accuracy:</b> ${data.accuracy.toFixed(4)}</p>
+          <p><b>Precision:</b> ${data.precision.toFixed(4)}</p>
+          <p><b>Recall:</b> ${data.recall.toFixed(4)}</p>
+          <p><b>F1 Score:</b> ${data.f1_score.toFixed(4)}</p>
+        `;
+
+                rightCard = `
+          <h3>Confusion Matrix</h3>
+          ${matrixHTML}
+        `;
+
+                bottomCard = `
+          <h3>Classification Report</h3>
+          ${reportHTML}
+        `;
+            }
+
+            let plotCard = `
+      <div class="card" style="width:100%;text-align:center">
+        <h3>Best Fit / Prediction Plot</h3>
+        <img src="data:image/png;base64,${data.plot}" style="max-width:100%;border-radius:10px">
+      </div>
+    `;
+
+            resultDiv.innerHTML = `
+      <div class="card" id="left">${leftCard}</div>
+      <div class="card" id="right">${rightCard}</div>
+      <div class="card" id="bottom-left">${bottomCard}</div>
+      <div id="bottom-right">${plotCard}</div>
+    `;
+        });
+
+        const ex = document.getElementById("export");
+        ex.addEventListener("click", async () => {
+            try {
+                const response = await fetch("/export");
+                if (!response.ok) {
+                    const data = await response.json();
+                    alert(data.error || "Failed to export model");
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "model.pkl"; // file name
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert("An unexpected error occurred while exporting the model.");
+            }
+        });
+
+        // ========== DAY / NIGHT TOGGLE ==========
+        (function() {
+            const body = document.body;
+            const toggleBtn = document.getElementById('themeToggle');
+            
+            function setTheme(theme) {
+                body.classList.remove('day', 'night');
+                body.classList.add(theme);
+                toggleBtn.textContent = theme === 'night' ? '🌙' : '☀️';
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                const newTheme = body.classList.contains('night') ? 'day' : 'night';
+                setTheme(newTheme);
+            });
+
+            // generate random floating particles
+            const field = document.getElementById('particleField');
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 8 + 2;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.bottom = '-10%';
+                p.style.animationDelay = Math.random() * 15 + 's';
+                p.style.animationDuration = (Math.random() * 20 + 15) + 's';
+                p.style.background = 'var(--particle-color)';
+                field.appendChild(p);
+            }
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DATA HUB</title>
+  <!-- modern favicon (blue/teal circle) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234a72ff'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%2336d6b0'/%3E%3C/svg%3E">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+  <style>
+    /* advanced reset & base */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    /* theme variables – day & night */
+    :root {
+      --transition-theme: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body.night {
+      --depth-bg: #030614;
+      --depth-card: rgba(8, 15, 26, 0.75);
+      --text-primary: #f0f4ff;
+      --text-secondary: #b0c2e0;
+      --accent-1: #4a72ff;
+      --accent-2: #36d6b0;
+      --glow-intensity: 0.8;
+      --border-light: rgba(255, 255, 255, 0.08);
+      --shadow-heavy: 0 35px 60px -15px #000000cc;
+      --particle-color: rgba(74, 114, 255, 0.4);
+      --sun-moon: #ffdd88; /* moon glow */
+      --toggle-bg: #0f1a2b;
+    }
+
+    body.day {
+      --depth-bg: #eef5ff;
+      --depth-card: rgba(255, 255, 255, 0.6);
+      --text-primary: #0a1a2f;
+      --text-secondary: #1e3a5f;
+      --accent-1: #2b4cbe;
+      --accent-2: #1f9a7a;
+      --glow-intensity: 0.4;
+      --border-light: rgba(0, 30, 60, 0.15);
+      --shadow-heavy: 0 25px 40px -10px rgba(0, 50, 100, 0.5);
+      --particle-color: rgba(43, 76, 190, 0.3);
+      --sun-moon: #ffb347; /* sun orange */
+      --toggle-bg: #c3d9ff;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+      position: relative;
+      overflow-x: hidden;
+      background: var(--depth-bg);
+      color: var(--text-primary);
+      transition: background-color var(--transition-theme), color var(--transition-theme);
+    }
+
+    /* animated background with day/night orbs */
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 20% 30%, var(--accent-1) 0%, transparent 30%),
+        radial-gradient(circle at 80% 70%, var(--accent-2) 0%, transparent 35%),
+        radial-gradient(circle at 30% 80%, var(--accent-1) 0%, transparent 40%),
+        repeating-linear-gradient(45deg, var(--accent-2) 0px, var(--accent-2) 2px, transparent 2px, transparent 8px);
+      opacity: 0.15;
+      filter: blur(40px) brightness(1.2);
+      z-index: 0;
+      transition: background-color var(--transition-theme);
+      animation: breathe 14s infinite alternate ease-in-out;
+    }
+
+    /* floating particles (stars or dust) */
+    .particle-field {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      background: var(--particle-color);
+      border-radius: 50%;
+      box-shadow: 0 0 15px currentColor;
+      animation: float-particle 20s infinite linear;
+      transition: background var(--transition-theme);
+    }
+
+    @keyframes float-particle {
+      0% { transform: translateY(0) translateX(0); opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { transform: translateY(-120vh) translateX(20vw); opacity: 0; }
+    }
+
+    /* main layout */
+    .main {
+      display: flex;
+      width: 1400px;
+      max-width: 90vw;
+      padding: 2rem;
+      gap: 4rem;
+      margin: 0 auto;
+      align-items: center;
+      position: relative;
+      z-index: 20;
+    }
+
+    .left {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      animation: slideReveal 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+    }
+
+    .left h1 {
+      font-size: clamp(3rem, 7vw, 5rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      text-shadow: 0 0 20px color-mix(in srgb, var(--accent-1) 50%, transparent);
+      transform: translateY(0);
+      transition: transform 0.2s ease, text-shadow 0.3s;
+    }
+
+    .left h1:hover {
+      transform: translateX(8px) skewX(-2deg);
+      text-shadow: 0 0 40px var(--accent-2);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      margin-top: -0.5rem;
+      filter: drop-shadow(0 0 20px color-mix(in srgb, var(--accent-1) 70%, transparent));
+    }
+
+    .left p {
+      margin-top: 2rem;
+      font-size: 1.4rem;
+      color: var(--text-secondary);
+      max-width: 560px;
+      font-weight: 350;
+      line-height: 1.7;
+      border-left: 4px solid transparent;
+      border-image: linear-gradient(180deg, var(--accent-1), var(--accent-2));
+      border-image-slice: 1;
+      padding-left: 2rem;
+      backdrop-filter: blur(4px);
+      transition: border-left-width 0.3s, border-color 0.3s;
+    }
+
+    .left p:hover {
+      border-left-width: 8px;
+    }
+
+    .right {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 20px 30px #00000050);
+      perspective: 1200px;
+    }
+
+    .card {
+      background: var(--depth-card);
+      backdrop-filter: blur(20px) saturate(200%);
+      -webkit-backdrop-filter: blur(20px) saturate(200%);
+      border-radius: 48px;
+      padding: 3.2rem 3rem;
+      width: 540px;
+      border: 1px solid var(--border-light);
+      box-shadow: var(--shadow-heavy), 0 0 0 1px color-mix(in srgb, var(--accent-1) 20%, transparent) inset;
+      transition: all 0.4s cubic-bezier(0.2, 0.9, 0.4, 1), background-color var(--transition-theme), border-color 0.3s;
+      position: relative;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      transform: rotateX(2deg) rotateY(1deg) translateZ(10px);
+    }
+
+    .card:hover {
+      transform: rotateX(0deg) rotateY(0deg) translateZ(30px) scale(1.02);
+      box-shadow: 0 50px 80px -10px #000, 0 0 0 2px var(--accent-1) inset, 0 0 40px var(--accent-2);
+      border-color: transparent;
+    }
+
+    /* animated gradient border (day/night aware) */
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -3px;
+      border-radius: 50px;
+      padding: 3px;
+      background: linear-gradient(125deg, var(--accent-1), var(--accent-2), var(--accent-1), var(--accent-2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      opacity: 0;
+      transition: opacity 0.5s, background 0.3s;
+      pointer-events: none;
+      animation: rotateBorder 6s linear infinite;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    /* drop area – advanced pulse & glass */
+    .droparea {
+      height: 200px;
+      background: color-mix(in srgb, var(--depth-bg) 70%, transparent);
+      border: 2px dashed var(--accent-1);
+      border-radius: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      font-weight: 450;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.3s;
+      backdrop-filter: blur(8px);
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      word-break: break-word;
+      padding: 2rem;
+      text-align: center;
+      box-shadow: 0 0 20px color-mix(in srgb, var(--accent-1) 30%, transparent), inset 0 0 15px color-mix(in srgb, var(--accent-2) 20%, transparent);
+      animation: borderPulse 4s infinite ease-in-out;
+      position: relative;
+      z-index: 2;
+    }
+
+    .droparea:hover {
+      border-color: var(--accent-2);
+      background: color-mix(in srgb, var(--depth-card) 90%, white);
+      color: var(--text-primary);
+      box-shadow: 0 0 50px var(--accent-2), inset 0 0 30px var(--accent-2);
+      border-style: solid;
+      transform: scale(1.02) translateY(-4px);
+      letter-spacing: 5px;
+    }
+
+    .droparea.file-added {
+      border-color: var(--accent-2);
+      background: color-mix(in srgb, var(--accent-2) 20%, transparent);
+      color: var(--text-primary);
+      font-weight: 600;
+      box-shadow: 0 0 60px var(--accent-2);
+      animation: none;
+      border-style: solid;
+    }
+
+    @keyframes borderPulse {
+      0% { border-color: var(--accent-1); box-shadow: 0 0 15px var(--accent-1); }
+      50% { border-color: var(--accent-2); box-shadow: 0 0 40px var(--accent-2); }
+      100% { border-color: var(--accent-1); box-shadow: 0 0 15px var(--accent-1); }
+    }
+
+    .or {
+      text-align: center;
+      margin: 1.8rem 0 1.2rem;
+      color: var(--text-secondary);
+      font-weight: 350;
+      text-transform: uppercase;
+      font-size: 1rem;
+      letter-spacing: 4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .or::before,
+    .or::after {
+      content: "";
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--accent-1), var(--accent-2), transparent);
+      background-size: 200% 2px;
+      animation: dashMove 3s linear infinite;
+    }
+
+    /* file input – advanced styling */
+    input[type="file"] {
+      width: 100%;
+      margin: 0.5rem 0 2.2rem;
+      padding: 1rem 1.5rem;
+      background: color-mix(in srgb, var(--depth-bg) 80%, black);
+      border: 1px solid var(--accent-1);
+      border-radius: 60px;
+      color: var(--text-primary);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: 0.3s;
+      backdrop-filter: blur(10px);
+    }
+
+    input[type="file"]::file-selector-button {
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 80%, black), color-mix(in srgb, var(--accent-2) 80%, black));
+      border: none;
+      border-radius: 40px;
+      padding: 0.7rem 2rem;
+      margin-right: 1.5rem;
+      color: white;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: 0.2s;
+      box-shadow: 0 8px 16px #00000080, 0 0 0 1px var(--accent-1) inset;
+      border: 1px solid color-mix(in srgb, var(--accent-1) 50%, transparent);
+      letter-spacing: 1px;
+    }
+
+    input[type="file"]::file-selector-button:hover {
+      background: linear-gradient(145deg, var(--accent-1), var(--accent-2));
+      box-shadow: 0 10px 20px #000, 0 0 30px var(--accent-1);
+      border-color: var(--accent-2);
+    }
+
+    input[type="file"]:hover {
+      border-color: var(--accent-2);
+      background: color-mix(in srgb, var(--depth-card) 90%, white);
+      box-shadow: 0 0 30px var(--accent-2);
+    }
+
+    /* process button – futuristic */
+    button {
+      width: 100%;
+      padding: 1.4rem 2rem;
+      border: none;
+      border-radius: 80px;
+      background: linear-gradient(145deg, color-mix(in srgb, var(--depth-bg) 90%, black), var(--depth-bg));
+      color: var(--text-primary);
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      cursor: pointer;
+      box-shadow: 0 20px 30px -10px #000, 0 -3px 0 var(--accent-1) inset, 0 3px 0 color-mix(in srgb, var(--accent-2) 50%, black) inset;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      border: 1px solid color-mix(in srgb, var(--accent-1) 30%, transparent);
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+    }
+
+    button::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+      z-index: -1;
+    }
+
+    button:hover::after {
+      left: 100%;
+    }
+
+    button:hover {
+      background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 30%, black), color-mix(in srgb, var(--accent-2) 30%, black));
+      box-shadow: 0 25px 40px -5px #000, 0 -3px 0 var(--accent-2) inset, 0 3px 0 var(--accent-1) inset;
+      transform: translateY(-4px) scale(1.02);
+      border-color: var(--accent-2);
+    }
+
+    button:active {
+      transform: translateY(4px);
+      box-shadow: 0 10px 15px -5px #000, 0 2px 0 #001122 inset;
+    }
+
+    /* day/night toggle button */
+    .theme-toggle {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 100;
+      background: var(--toggle-bg);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border-light);
+      border-radius: 60px;
+      width: 70px;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      cursor: pointer;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 2px var(--accent-1) inset;
+      transition: all 0.3s;
+      color: var(--sun-moon);
+      transform: rotate(0deg);
+    }
+
+    .theme-toggle:hover {
+      transform: scale(1.15) rotate(15deg);
+      box-shadow: 0 20px 40px black, 0 0 0 3px var(--accent-2) inset;
+      color: var(--accent-2);
+    }
+
+    /* responsive */
+    @media (max-width: 900px) {
+      .main { flex-direction: column; gap: 2.5rem; text-align: center; }
+      .left { align-items: center; }
+      .left p { border-left: none; padding-left: 0; border-top: 4px solid transparent; border-image: linear-gradient(90deg, var(--accent-1), var(--accent-2)); border-image-slice: 1; padding-top: 1.8rem; }
+      .card { width: 100%; }
+    }
+
+    /* keyframes */
+    @keyframes slideReveal {
+      0% { opacity: 0; transform: translateX(-60px) skewX(-5deg); }
+      100% { opacity: 1; transform: translateX(0) skewX(0); }
+    }
+    @keyframes rotateBorder {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    @keyframes breathe {
+      0% { opacity: 0.2; filter: blur(40px); }
+      100% { opacity: 0.5; filter: blur(60px); }
+    }
+    @keyframes dashMove {
+      0% { background-position: 0% 0; }
+      100% { background-position: 200% 0; }
+    }
+  </style>
+</head>
+<body class="night">
+  <!-- floating particles (day/night will recolor via variable) -->
+  <div class="particle-field" id="particleField"></div>
+
+  <!-- day/night toggle -->
+  <div class="theme-toggle" id="themeToggle" title="switch day/night">🌙</div>
+
+  <div class="main">
+    <div class="left">
+      <h1>WELCOME TO</h1>
+      <h1 class="primary">DATA HUB</h1>
+      <p>
+        Analyze, visualize and process your datasets with an interactive
+        dashboard — now in day & night.
+      </p>
+    </div>
+
+    <div class="right">
+      <div class="card">
+        <div class="droparea" id="droparea">Drop your CSV file</div>
+        <div class="or">or</div>
+        <input type="file" id="fileinput" accept=".csv,.xlsx" />
+        <button id="processButton">Process Data</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ========== DAY / NIGHT TOGGLE (advanced visual upgrade) ==========
+    (function() {
+      const body = document.body;
+      const toggleBtn = document.getElementById('themeToggle');
+      
+      function setTheme(theme) {
+        body.classList.remove('day', 'night');
+        body.classList.add(theme);
+        toggleBtn.textContent = theme === 'night' ? '🌙' : '☀️';
+        // regenerate particles with new color (simple update)
+      }
+
+      toggleBtn.addEventListener('click', () => {
+        const newTheme = body.classList.contains('night') ? 'day' : 'night';
+        setTheme(newTheme);
+      });
+
+      // generate random floating particles
+      const field = document.getElementById('particleField');
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        const size = Math.random() * 6 + 2;
+        p.style.width = size + 'px';
+        p.style.height = size + 'px';
+        p.style.left = Math.random() * 100 + '%';
+        p.style.bottom = '-10%';
+        p.style.animationDelay = Math.random() * 10 + 's';
+        p.style.animationDuration = (Math.random() * 15 + 10) + 's';
+        p.style.background = 'var(--particle-color)';
+        field.appendChild(p);
+      }
+    })();
+
+    // ========== ORIGINAL FUNCTIONALITY (preserved exactly) ==========
+    (function() {
+      const droparea = document.querySelector(".droparea");
+      const fileInput = document.getElementById("fileinput");
+      const button = document.getElementById("processButton");
+      let file = null;
+
+      ["dragenter", "dragover", "dragleave", "drop"].forEach((e) => {
+        droparea.addEventListener(e, (x) => x.preventDefault());
+      });
+
+      droparea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        file = e.dataTransfer.files[0];
+        handleFile(file);
+      });
+
+      fileInput.addEventListener("change", () => {
+        file = fileInput.files[0];
+        handleFile(file);
+      });
+
+      function handleFile(f) {
+        if (!f) {
+          droparea.textContent = "Drop your CSV file";
+          droparea.classList.remove("file-added");
+          return;
+        }
+        if (f.name.endsWith(".csv") || f.name.endsWith(".xlsx")) {
+          droparea.textContent = "✓ " + f.name;
+          droparea.classList.add("file-added");
+        } else {
+          droparea.textContent = "✗ invalid format (use .csv or .xlsx)";
+          droparea.classList.remove("file-added");
+          file = null;
+          fileInput.value = '';
+        }
+      }
+
+      button.onclick = async () => {
+        if (!file) {
+          alert("Select a file first");
+          return;
+        }
+        let fd = new FormData();
+        fd.append("file", file);
+        try {
+          let res = await fetch("/upload", { method: "POST", body: fd });
+          let data = await res.json();
+          if (res.ok) {
+            location.href = "/basic_info";
+          } else {
+            alert(data.error || "Upload failed");
+          }
+        } catch (err) {
+          alert("Network error — cannot reach server");
+        }
+      };
+
+      droparea.addEventListener("click", () => {
+        fileInput.click();
+      });
+
+      fileInput.addEventListener('change', function() {
+        if (!this.files || !this.files[0]) {
+          droparea.textContent = "Drop your CSV file";
+          droparea.classList.remove("file-added");
+          file = null;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Data Hub · Data Processing</title>
+    <!-- modern favicon (blue/teal circle) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%234a72ff'/%3E%3Ccircle cx='50' cy='50' r='20' fill='%2336d6b0'/%3E%3C/svg%3E">
+    <!-- modern font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        /* === reset & base === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        /* theme variables – day & night */
+        :root {
+            --transition-theme: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.night {
+            --depth-bg: #030614;
+            --depth-card: rgba(8, 15, 26, 0.8);
+            --text-primary: #ffffff;
+            --text-secondary: #cfdfff;
+            --accent-1: #4a72ff;
+            --accent-2: #36d6b0;
+            --accent-glow: rgba(74, 114, 255, 0.7);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --shadow-heavy: 0 35px 60px -15px #000000;
+            --particle-color: #4a72ff;
+            --sun-moon: #ffdd88;
+            --toggle-bg: #0f1a2b;
+            --card-inner-border: #ffffff0a;
+            --table-header-bg: #1f2b41;
+            --table-border: #2d3855;
+        }
+
+        body.day {
+            --depth-bg: #eef5ff;
+            --depth-card: rgba(255, 255, 255, 0.75);
+            --text-primary: #0a2540;
+            --text-secondary: #1f4172;
+            --accent-1: #2b4cbe;
+            --accent-2: #1f9a7a;
+            --accent-glow: rgba(43, 76, 190, 0.6);
+            --border-light: rgba(0, 30, 60, 0.2);
+            --shadow-heavy: 0 25px 40px -10px rgba(0, 50, 100, 0.5);
+            --particle-color: #2b4cbe;
+            --sun-moon: #ffb347;
+            --toggle-bg: #c3d9ff;
+            --card-inner-border: rgba(0, 30, 60, 0.1);
+            --table-header-bg: #c6d6ff;
+            --table-border: #a0b5dd;
+        }
+
+        body {
+            background: var(--depth-bg);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            padding: 1.5rem;
+            transition: background-color var(--transition-theme), color var(--transition-theme);
+            position: relative;
+        }
+
+        /* animated background */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 30%, var(--accent-1) 0%, transparent 35%),
+                radial-gradient(circle at 80% 70%, var(--accent-2) 0%, transparent 40%),
+                radial-gradient(circle at 30% 80%, var(--accent-1) 0%, transparent 45%),
+                repeating-linear-gradient(45deg, var(--accent-2) 0px, var(--accent-2) 2px, transparent 2px, transparent 8px);
+            opacity: 0.15;
+            filter: blur(50px) brightness(1.3);
+            z-index: 0;
+            animation: breathe 15s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+
+        /* floating particles */
+        .particle-field {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            background: var(--particle-color);
+            border-radius: 50%;
+            box-shadow: 0 0 20px currentColor;
+            animation: float-particle 25s infinite linear;
+            transition: background var(--transition-theme);
+            opacity: 0.5;
+        }
+
+        @keyframes float-particle {
+            0% { transform: translateY(0) translateX(0); opacity: 0.2; }
+            50% { opacity: 0.8; }
+            100% { transform: translateY(-120vh) translateX(20vw); opacity: 0; }
+        }
+
+        @keyframes breathe {
+            0% { opacity: 0.2; filter: blur(40px); }
+            100% { opacity: 0.6; filter: blur(70px); }
+        }
+
+        /* ===== navigation – glass morph ===== */
+        #naviagation {
+            margin: 0 0 2rem 0;
+            background: var(--depth-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 0.75rem 1.5rem;
+            border-radius: 60px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.6rem 1rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            z-index: 10;
+        }
+
+        #naviagation button {
+            background: transparent;
+            color: var(--text-secondary);
+            border: none;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            padding: 0.6rem 1.4rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+        }
+
+        #naviagation button:hover {
+            background: color-mix(in srgb, var(--accent-1) 15%, transparent);
+            color: var(--text-primary);
+            border-color: var(--accent-1);
+            box-shadow: 0 0 15px var(--accent-1);
+        }
+
+        #naviagation h4 {
+            flex: 1;
+            text-align: center;
+            background: color-mix(in srgb, var(--accent-2) 10%, transparent);
+            border-radius: 60px;
+            padding: 0.6rem 1.5rem;
+            border: 1px solid var(--accent-2);
+            color: var(--text-primary);
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            font-size: 1rem;
+            box-shadow: 0 0 15px var(--accent-2);
+        }
+
+        #home {
+            background: color-mix(in srgb, #f44d4d 10%, transparent) !important;
+            border: 1px solid #f44d4d40 !important;
+            color: var(--text-secondary) !important;
+        }
+        #home:hover {
+            background: #f44d4d30 !important;
+            border-color: #f44d4d !important;
+            color: white !important;
+            box-shadow: 0 0 20px #f44d4d;
+        }
+         
+        /* Data Processing page active button */
+            #naviagation button[onclick*="/processing"] {
+            background: linear-gradient(145deg, var(--accent-1), color-mix(in srgb, var(--accent-2) 70%, black)) !important;
+            color: white !important;
+            box-shadow: 0 8px 16px -6px #0e162b, 0 2px 0 0 var(--accent-2) inset, 0 0 20px var(--accent-1);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* theme toggle button inside navigation */
+        #themeToggle {
+            background: var(--toggle-bg);
+            border: 1px solid var(--accent-1) !important;
+            color: var(--sun-moon) !important;
+            font-size: 1.4rem;
+            padding: 0.6rem 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+        #themeToggle:hover {
+            transform: scale(1.1) rotate(10deg);
+            border-color: var(--accent-2) !important;
+            box-shadow: 0 0 20px var(--accent-2);
+        }
+
+        /* ===== processing section headers ===== */
+        .processing-section h3 {
+            width: 100%;
+            font-size: 1.8rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-1);
+            padding-bottom: 0.4rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== cards container ===== */
+        .processing-section {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            margin: 2rem 0;
+            position: relative;
+            z-index: 10;
+        }
+
+        .processing-card {
+            flex: 1 1 280px;
+            background: var(--depth-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 1.8rem 1.5rem;
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy), 0 0 0 1px var(--card-inner-border) inset;
+            transition: transform 0.3s cubic-bezier(0.2,0.9,0.3,1), box-shadow 0.4s, border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .processing-card::before {
+            content: "";
+            position: absolute;
+            inset: -2px;
+            border-radius: 34px;
+            padding: 2px;
+            background: linear-gradient(125deg, var(--accent-1), var(--accent-2), var(--accent-1), var(--accent-2));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.5s;
+            pointer-events: none;
+            animation: rotateBorder 6s linear infinite;
+        }
+
+        .processing-card:hover::before {
+            opacity: 1;
+        }
+
+        .processing-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 30px 50px -20px #000, 0 0 0 1px var(--accent-1) inset, 0 0 30px var(--accent-2);
+            border-color: transparent;
+        }
+
+        .processing-card h5 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--accent-2);
+            padding-bottom: 0.5rem;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        /* selects and buttons inside cards */
+        .processing-card select,
+        .processing-card .process-btn {
+            width: 100%;
+            margin-top: 0.4rem;
+        }
+
+        select {
+            background: color-mix(in srgb, var(--depth-bg) 70%, black);
+            border: 1px solid var(--table-border);
+            border-radius: 40px;
+            padding: 0.7rem 1.2rem;
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            outline: none;
+            transition: 0.2s;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+        }
+
+        select:hover {
+            border-color: var(--accent-1);
+        }
+        select:focus {
+            border-color: var(--accent-2);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 30%, transparent);
+        }
+
+        .process-btn {
+            background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 20%, black), color-mix(in srgb, var(--accent-2) 20%, black));
+            border: none;
+            border-radius: 50px;
+            padding: 0.8rem 1.2rem;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 6px 12px #00000060, 0 2px 0 0 var(--accent-2) inset;
+            border: 1px solid #ffffff10;
+        }
+
+        .process-btn:hover {
+            background: linear-gradient(145deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 10px 18px -5px #000, 0 0 20px var(--accent-1);
+            transform: scale(1.02);
+        }
+
+        /* ===== data preview section ===== */
+        .data-preview-section {
+            margin: 2rem 0;
+            padding: 2rem 2rem;
+            border-radius: 36px;
+            background: var(--depth-card);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-heavy);
+            position: relative;
+            z-index: 10;
+        }
+
+        .data-preview-section h3 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--accent-2);
+            padding-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .data-preview-section button {
+            background: transparent;
+            border: 1px solid var(--table-border);
+            color: var(--text-secondary);
+            padding: 0.7rem 2rem;
+            border-radius: 40px;
+            font-weight: 500;
+            margin-right: 1rem;
+            transition: 0.2s;
+            cursor: pointer;
+            font-size: 0.95rem;
+        }
+
+        .data-preview-section button:hover {
+            background: color-mix(in srgb, var(--accent-1) 20%, transparent);
+            border-color: var(--accent-1);
+            color: var(--text-primary);
+            box-shadow: 0 0 15px var(--accent-1);
+        }
+
+        .data-preview-section .active-btn {
+            background: linear-gradient(145deg, var(--accent-2), color-mix(in srgb, var(--accent-2) 80%, black)) !important;
+            border-color: var(--accent-1) !important;
+            color: #0b0c10 !important;
+            font-weight: 600;
+            box-shadow: 0 0 25px var(--accent-2);
+        }
+
+        /* table styling */
+        #processed_data {
+            margin-top: 2rem;
+            overflow-x: auto;
+            border-radius: 24px;
+            background: color-mix(in srgb, var(--depth-bg) 80%, transparent);
+            padding: 1px;
+        }
+
+        #processed_data table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+            background: color-mix(in srgb, var(--depth-bg) 90%, black);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 8px 20px #00000060;
+        }
+
+        #processed_data th {
+            background: var(--table-header-bg);
+            color: var(--text-primary);
+            font-weight: 600;
+            padding: 1rem 0.8rem;
+            text-align: center;
+            border-bottom: 2px solid var(--accent-2);
+        }
+
+        #processed_data td {
+            padding: 0.8rem;
+            text-align: center;
+            border-bottom: 1px solid var(--table-border);
+            color: var(--text-secondary);
+        }
+
+        /* download button */
+        #download {
+            margin: 2rem 0;
+            text-align: center;
+        }
+
+        #download_file {
+            background: linear-gradient(145deg, color-mix(in srgb, var(--accent-1) 20%, black), color-mix(in srgb, var(--accent-2) 20%, black));
+            border: none;
+            border-radius: 50px;
+            padding: 0.9rem 2.5rem;
+            color: white;
+            font-weight: 600;
+            font-size: 1.1rem;
+            cursor: pointer;
+            box-shadow: 0 8px 18px #00000080, 0 2px 0 0 var(--accent-2) inset;
+            border: 1px solid #ffffff10;
+            transition: 0.2s;
+            display: inline-block;
+        }
+
+        #download_file:hover {
+            background: linear-gradient(145deg, var(--accent-1), var(--accent-2));
+            box-shadow: 0 12px 24px #000000, 0 0 20px var(--accent-1);
+            transform: scale(1.02);
+        }
+
+        /* small screens */
+        @media (max-width: 800px) {
+            #naviagation { border-radius: 30px; padding: 0.75rem 1rem; }
+            #naviagation h4 { flex: auto; width: 100%; order: 1; }
+            #home { order: 2; }
+            #themeToggle { order: 3; }
+            .processing-section { flex-direction: column; }
+        }
+
+        /* override inline background on processing button */
+        #naviagation button[onclick*="/processing"] {
+            background: transparent !important;
+            color: var(--text-secondary) !important;
+        }
+        #naviagation button[onclick*="/processing"]:hover {
+            background: color-mix(in srgb, var(--accent-1) 15%, transparent) !important;
+            color: var(--text-primary) !important;
+        }
+
+        @keyframes rotateBorder {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="night">
+    <!-- floating particles -->
+    <div class="particle-field" id="particleField"></div>
+
+    <!-- navigation with integrated theme toggle -->
+    <div id="naviagation">
+        <button id="data_info" onclick="window.location.href = '/basic_info'">
+            Basic Data Info
+        </button>
+        <button onclick="window.location.href = '/visualization'">
+            Data Visualization
+        </button>
+        <button
+            id="processing"
+            onclick="window.location.href = '/processing'"
+            style="background-color: #960dbc; color: white"
+        >
+            Data Processing
+        </button>
+        <button onclick="window.location.href = '/model'">Model Building</button>
+        <h4>Data Processing</h4>
+        <button id="home" onclick="window.location.href = '/login'">Home</button>
+        <!-- theme toggle button inside navigation -->
+        <button id="themeToggle" title="switch day/night">🌙</button>
+    </div>
+
+    <div class="processing-section">
+        <h3>Data Processing Tasks</h3>
+
+        <div class="processing-card">
+            <h5>Handle Missing Values</h5>
+            <select id="missing_col"></select>
+
+            <select id="missing_method">
+                <option value="">--Select Method--</option>
+                <option value="drop">Drop</option>
+                <option value="mean">Mean</option>
+                <option value="median">Median</option>
+                <option value="mode">Mode</option>
+            </select>
+
+            <button class="process-btn" onclick="handleMissing()">Process</button>
+        </div>
+
+        <div class="processing-card">
+            <h5>Handle Duplicates</h5>
+            <select id="dup_method">
+                <option value="">--Select Method--</option>
+                <option value="drop">Drop All</option>
+                <option value="keep_first">Keep First</option>
+                <option value="keep_last">Keep Last</option>
+            </select>
+
+            <button class="process-btn" onclick="handleDuplicates()">
+                Process
+            </button>
+        </div>
+
+        <div class="processing-card">
+            <h5>Handle Outliers</h5>
+
+            <select id="outlier_col">
+                <option value="">--Select Column--</option>
+            </select>
+
+            <select id="q_low">
+                <option value="">Lower Quantile</option>
+                <option value="0.01">1%</option>
+                <option value="0.05">5%</option>
+                <option value="0.1">10%</option>
+            </select>
+
+            <select id="q_high">
+                <option value="">Upper Quantile</option>
+                <option value="0.9">90%</option>
+                <option value="0.95">95%</option>
+                <option value="0.99">99%</option>
+            </select>
+
+            <button class="process-btn" onclick="handleOutliers()">
+                Remove Outliers
+            </button>
+        </div>
+
+        <div class="processing-card">
+            <h5>Change Column Data Type</h5>
+            <select id="dtype_col">
+                <option value="">--Select Column--</option>
+            </select>
+            <select id="new_dtype">
+                <option value="">--Select Type--</option>
+                <option value="int">Integer</option>
+                <option value="float">Float</option>
+                <option value="str">String</option>
+                <option value="category">Category</option>
+            </select>
+            <button class="process-btn" onclick="changeDtype()">Change Type</button>
+        </div>
+
+        <div class="processing-card">
+            <h5>Drop Columns</h5>
+            <select id="drop_col">
+                <option value="">--Select Column--</option>
+            </select>
+            <button class="process-btn" onclick="dropColumn()">Drop Column</button>
+        </div>
+    </div>
+
+    <div class="data-preview-section">
+        <h3>Data Preview</h3>
+        <div>
+            <button id="first_rows">First 5 Rows</button>
+            <button id="last_rows">Last 5 Rows</button>
+            <button id="random_rows">Random 5 Rows</button>
+        </div>
+        <div id="processed_data" style="margin-top: 10px; overflow-x: auto"></div>
+    </div>
+
+    <div id="download">
+        <button id="download_file" class="process-btn">Download File</button>
+    </div>
+
+    <!-- script (identical, plus day/night toggle logic) -->
+    <script>
+        const processedDataDiv = document.getElementById("processed_data");
+
+        // =========================
+        // ALERT FUNCTION
+        // =========================
+        function showAlert(message, type = "success") {
+            const alertDiv = document.createElement("div");
+            alertDiv.textContent = message;
+            alertDiv.style.position = "fixed";
+            alertDiv.style.top = "20px";
+            alertDiv.style.right = "20px";
+            alertDiv.style.padding = "12px 20px";
+            alertDiv.style.borderRadius = "8px";
+            alertDiv.style.zIndex = 9999;
+            alertDiv.style.color = type === "success" ? "#000" : "#fff";
+            alertDiv.style.backgroundColor =
+                type === "success" ? "#9a96ff" : "#f44d4d";
+            alertDiv.style.boxShadow = "0 4px 12px rgba(0,0,0,0.4)";
+            document.body.appendChild(alertDiv);
+
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 2500);
+        }
+
+        // =========================
+        // DATA PREVIEW
+        // =========================
+        const firstBtn = document.getElementById("first_rows");
+        const lastBtn = document.getElementById("last_rows");
+        const randomBtn = document.getElementById("random_rows");
+
+        function setActive(btn) {
+            firstBtn.classList.remove("active-btn");
+            lastBtn.classList.remove("active-btn");
+            randomBtn.classList.remove("active-btn");
+            btn.classList.add("active-btn");
+        }
+
+        function fetchData(route) {
+            fetch(route)
+                .then((res) => res.json())
+                .then((data) => renderTable(data))
+                .catch((err) => showAlert("Failed to fetch data: " + err, "error"));
+        }
+
+        function renderTable(data) {
+            if (!data || data.error) {
+                processedDataDiv.innerHTML = data?.error || "No data available";
+                return;
+            }
+
+            let table = "<table border='1'><tr>";
+            Object.keys(data[0]).forEach((col) => {
+                table += `<th>${col}</th>`;
+            });
+            table += "</tr>";
+
+            data.forEach((row) => {
+                table += "<tr>";
+                Object.values(row).forEach((val) => {
+                    table += `<td>${val === null ? "" : val}</td>`;
+                });
+                table += "</tr>";
+            });
+
+            table += "</table>";
+            processedDataDiv.innerHTML = table;
+        }
+
+        firstBtn.onclick = () => {
+            setActive(firstBtn);
+            fetchData("/head");
+        };
+        lastBtn.onclick = () => {
+            setActive(lastBtn);
+            fetchData("/tail");
+        };
+        randomBtn.onclick = () => {
+            setActive(randomBtn);
+            fetchData("/sample");
+        };
+
+        function refreshTable() {
+            const activeBtn = document.querySelector(
+                ".data-preview-section .active-btn",
+            );
+            if (activeBtn) activeBtn.click();
+        }
+
+        // =========================
+        // POPULATE COLUMNS
+        // =========================
+        function populateColumns() {
+            fetch("/columns_info")
+                .then((res) => res.json())
+                .then((data) => {
+                    const colSelectors = [
+                        "missing_col",
+                        "outlier_col",
+                        "dtype_col",
+                        "drop_col",
+                    ];
+                    colSelectors.forEach((id) => {
+                        const sel = document.getElementById(id);
+                        sel.innerHTML = "<option value=''>--Select Column--</option>";
+                        data.numerical.concat(data.categorical).forEach((col) => {
+                            sel.innerHTML += `<option value="${col}">${col}</option>`;
+                        });
+                    });
+                })
+                .catch((err) => showAlert("Failed to load columns: " + err, "error"));
+        }
+        populateColumns();
+
+        // =========================
+        // HANDLE MISSING VALUES
+        // =========================
+        function handleMissing() {
+            const col = document.getElementById("missing_col").value;
+            const method = document.getElementById("missing_method").value;
+            if (!col || !method)
+                return showAlert("Select column and method", "error");
+
+            fetch("/process/missing", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ column: col, method: method }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        refreshTable();
+                        showAlert(
+                            `Missing values processed for "${col}" using "${method}"`,
+                        );
+                    } else if (data.error) {
+                        showAlert(data.error, "error");
+                    }
+                })
+                .catch((err) => showAlert(err, "error"));
+        }
+
+        // =========================
+        // HANDLE DUPLICATES
+        // =========================
+        function handleDuplicates() {
+            const method = document.getElementById("dup_method").value;
+            if (!method)
+                return showAlert("Select a duplicate handling method", "error");
+
+            fetch("/process/duplicates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ method: method }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        showAlert(data.message);
+                        refreshTable();
+                    } else if (data.error) {
+                        showAlert(data.error, "error");
+                    }
+                });
+        }
+
+        // =========================
+        // HANDLE OUTLIERS
+        // =========================
+        function handleOutliers() {
+            const col = document.getElementById("outlier_col").value;
+            const qLow = document.getElementById("q_low").value;
+            const qHigh = document.getElementById("q_high").value;
+
+            if (!col || !qLow || !qHigh)
+                return showAlert("Select column and quantiles", "error");
+
+            fetch("/process/outlier", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ column: col, q_low: qLow, q_high: qHigh }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        refreshTable();
+                        showAlert(`Outliers removed from "${col}"`);
+                    } else if (data.error) {
+                        showAlert(data.error, "error");
+                    }
+                })
+                .catch((err) => showAlert(err, "error"));
+        }
+
+        // =========================
+        // CHANGE DATA TYPE
+        // =========================
+        function changeDtype() {
+            const col = document.getElementById("dtype_col").value;
+            const dtype = document.getElementById("new_dtype").value;
+            if (!col || !dtype) return showAlert("Select column and type", "error");
+
+            fetch("/process/dtype", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ column: col, dtype: dtype }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        refreshTable();
+                        showAlert(`Column "${col}" converted to "${dtype}"`);
+                    } else if (data.error) {
+                        showAlert(data.error, "error");
+                    }
+                })
+                .catch((err) => showAlert(err, "error"));
+        }
+
+        // =========================
+        // DROP COLUMN
+        // =========================
+        function dropColumn() {
+            const col = document.getElementById("drop_col").value;
+            if (!col) return showAlert("Select a column", "error");
+
+            fetch("/process/drop", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ column: col }),
+            })
+                .then((res) => res.json())
+                .then((data) => {
+                    if (data.success) {
+                        populateColumns();
+                        refreshTable();
+                        showAlert(`Column "${col}" dropped`);
+                    } else if (data.error) {
+                        showAlert(data.error, "error");
+                    }
+                })
+                .catch((err) => showAlert(err, "error"));
+        }
+
+        // =========================
+        // DOWNLOAD FILE
+        // =========================
+        document.getElementById("download_file").onclick = () => {
+            window.location.href = "/download";
+        };
+
+        // ========== DAY / NIGHT TOGGLE ==========
+        (function() {
+            const body = document.body;
+            const toggleBtn = document.getElementById('themeToggle');
+            
+            function setTheme(theme) {
+                body.classList.remove('day', 'night');
+                body.classList.add(theme);
+                toggleBtn.textContent = theme === 'night' ? '🌙' : '☀️';
+            }
+
+            toggleBtn.addEventListener('click', () => {
+                const newTheme = body.classList.contains('night') ? 'day' : 'night';
+                setTheme(newTheme);
+            });
+
+            // generate random floating particles
+            const field = document.getElementById('particleField');
+            for (let i = 0; i < 40; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+                const size = Math.random() * 8 + 2;
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.left = Math.random() * 100 + '%';
+                p.style.bottom = '-10%';
+                p.style.animationDelay = Math.random() * 15 + 's';
+                p.style.animationDuration = (Math.random() * 20 + 15) + 's';
+                p.style.background = 'var(--particle-color)';
+                field.appendChild(p);
+            }
+        })();
+    </script>
+</body>
+</html>
